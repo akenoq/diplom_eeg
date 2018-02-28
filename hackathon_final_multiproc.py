@@ -1,6 +1,8 @@
 #! /usr/bin/env python
 # coding: utf-8
 from collections import deque
+
+import multiprocessing
 import serial
 import time
 import struct
@@ -19,17 +21,17 @@ from pybrain.supervised.trainers import BackpropTrainer
 # import RPi.GPIO as GPIO
 # BOARD нумерация контактов
 
-# моторы
-motor_l=15
-motor_r=13
-
-# направение
-way_l=16
-way_r=18
-
-# переключатели
-btn_start=12
-btn_3d=22
+# # моторы
+# motor_l=15
+# motor_r=13
+#
+# # направение
+# way_l=16
+# way_r=18
+#
+# # переключатели
+# btn_start=12
+# btn_3d=22
 
 # try:
 #     GPIO.setmode(GPIO.BOARD)
@@ -66,7 +68,7 @@ break_flag = True
 net = buildNetwork(64 * 3, 50, 10, 2, bias=True, hiddenclass=SigmoidLayer)
 
 # режим работы
-# state = 1 	#Данные поступают из электроэнцефалографа
+# state = 1 	# Данные поступают из электроэнцефалографа
 state = 0  # Данные поступают из файла datafile
 
 # Инициализация успешно выполнена
@@ -124,6 +126,9 @@ def on_open(ws):
 
 # Инициализация Socket консоли
 def connection():
+    name = multiprocessing.current_process().name
+    print 'PID of {} = {}'.format(name, 'Starting')
+
     enableTrace(True)
     ws = WebSocketApp("ws://console-server.herokuapp.com/", on_message=on_message, on_error=on_error,
                       on_close=on_close)
@@ -304,6 +309,11 @@ def get(count):
 
 def receive_data():
     global Init_done
+
+    name = multiprocessing.current_process().name
+    print 'KEEEEEEK'
+    print 'PID of {} = {}'.format(name, 'Starting')
+
     # Работа с последовательном портом и файлом
     if state:
         print "Working with serial"
@@ -520,8 +530,12 @@ def lets_start():
     global Init_done
 
     # Ждем старта
+    # надо расшарить run_state
     while not run_state:
         time.sleep(0.1)
+
+    name = multiprocessing.current_process().name
+    print 'PID of {} = {}'.format(name, 'Starting')
 
     # show image
     background_image = Tk.PhotoImage(file="wait.png")
@@ -789,15 +803,26 @@ def lets_start():
 def go():
     global run_state
     run_state = True
+    print 'LLLLLLLLLLLLLLOOOOOOOOOOOOOOOOOOOOLLLLLLLLLLLLLLLLLL'
 
 
 # Стартуем потоки
-t = Thread(target=connection)
-t.start()
-m = Thread(target=lets_start)
-m.start()
-b = Thread(target=receive_data)
-b.start()
+# t = Thread(target=connection)
+# t.start()
+# m = Thread(target=lets_start)
+# m.start()
+# b = Thread(target=receive_data)
+# b.start()
+
+connecting_ws = multiprocessing.Process(name='connect_ws', target=connection)
+starting_handler = multiprocessing.Process(name='start_handler', target=lets_start)
+receiving_data_eeg = multiprocessing.Process(name='receive_data_eeg', target=receive_data)
+
+starting_handler.start()
+connecting_ws.start()
+receiving_data_eeg.start()
+
+
 
 
 # Интерфейс

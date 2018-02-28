@@ -424,6 +424,7 @@ def receive_data_from_eeg():
             learnData += valuechannel1[i][j]
             learnData += valuechannel2[i][j]
             learnData += valuechannel3[i][j]
+    # ЛУЧШЕ НОРМАЛИЗОВАТЬ ТУТ normalize_data(learnData), А НЕ КАЖДЫЙ РАЗ НОРМАЛИЗОВЫВАТЬ
 
 
 def constructPerceptron(name, numNeurons):
@@ -464,18 +465,48 @@ def constructPerceptron(name, numNeurons):
     return net
 
 
+def normalize_data(data):
+    print "\nDATA = ", data
+    max_int = max(abs(max(data)), abs(min(data)))
+    print "MAX INT = ", max_int
+    norm_data = []
+    for current_int in data:
+        norm_data.append(float(current_int) / float(max_int))
+        # print "\nCUR ======================== ", current_int
+        # print "\nMAX ======================== ", max_int
+        # print "\nLOL ======================== ", current_int / max_int
+    return norm_data
+
+# def normalize_data_in_list(learnData):
+#     ld = []
+#     for tupl in learnData:
+#         print "\nne NORM = ", tupl
+#         # НЕЛЬЗЯ, так как tuple не изменяемый тип
+#         norm = normalize_data(tupl[0])
+#         print "\nNORM = ", norm
+#         tupl = (norm, tupl[1])
+#         print "TUPL = ", tupl
+#         ld.append(tupl)
+#     return ld
+# norm_learnData = normalize_data_in_list(learnData)
+
 def constructDataset(name, learnData):
     """Возвращает обучающую выборку в формате PyBrain
 
     Аргументы:
     name -- имя набора данных, строка
     learnData -- данные для обучения: список кортежей типа "входные признаки - выходной вектор"
+    входные признаки нормализованные
 
     """
+
     # Вычисляем размерность входных данных
     dimIn = len(learnData[0][0])
     dimOut = len(learnData[0][1])
+    # SuperviseDataSet => Pass inp and target to specify the size of the input and target vectors
+    # And we do it by first pair of in & out vectors from list of tupples learnData = educate[ ( [learnData],[0, 0] ) , ..., ( [learnData],[0, 0] ) ]
     ds = SupervisedDataSet(dimIn, dimOut)
+    # Add a new sample consisting of input and target vectors from list learnData
     for d in learnData:
         ds.addSample(d[0], d[1])
     return ds
@@ -490,6 +521,7 @@ def trainNetwork(net, trainData):
 
     """
     # Трейнер для обучения с учителем
+    print "\n\nTRAIN DATA = {} \n\n".format(trainData)
     trainer = BackpropTrainer(net, trainData)
     # Запускаем трейнер на 1 эпоху и запоминаем оценку ошибки
     coef = trainer.train()
@@ -579,7 +611,7 @@ def lets_start():
                 # Start educate correct left
                 #
                 #
-                education.append((learnData, [1, 0]))
+                education.append((normalize_data(learnData), [1, 0]))
 
                 # show image
                 background_image = Tk.PhotoImage(file="wait.png")
@@ -604,7 +636,7 @@ def lets_start():
                 #
                 #
 
-                education.append((learnData, [0, 0]))
+                education.append((normalize_data(learnData), [0, 0]))
 
                 # show image
                 background_image = Tk.PhotoImage(file="wait.png")
@@ -649,7 +681,7 @@ def lets_start():
                 #
                 #
 
-                education.append((learnData, [0, 1]))
+                education.append((normalize_data(learnData), [0, 1]))
 
                 # show image
                 background_image = Tk.PhotoImage(file="wait.png")
@@ -674,7 +706,7 @@ def lets_start():
                 #
                 #
 
-                education.append((learnData, [0, 0]))
+                education.append((normalize_data(learnData), [0, 0]))
 
                 # show image
                 background_image = Tk.PhotoImage(file="wait.png")
@@ -688,6 +720,7 @@ def lets_start():
             # Формирование обучающей выборки
             # print education
             # Данные для обучения data поступают от ЭЭГ в описанном выше формате - списке обучающих пар
+            print "\nEEEEEEEDUUUUUUUUUCAAAAAAAAAAATIIIIIIIIIIOOOOOOOOOOOON = ", education
             ds = constructDataset('data', education)
             # Запуск 1 полной эпохи обучения
             (trained_net, err) = trainNetwork(n, ds)
@@ -720,7 +753,7 @@ def lets_start():
             receive_data_from_eeg()
 
             # Активизируем сеть! На вход подаем список из 64 чисел - вектор входных признаков
-            recognition = trained_net.activate(learnData)
+            recognition = trained_net.activate(normalize_data(learnData))
 
             print recognition
 
