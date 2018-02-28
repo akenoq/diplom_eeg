@@ -1,3 +1,5 @@
 fifo
 fifo2
 test.py
+*.pyc
+
